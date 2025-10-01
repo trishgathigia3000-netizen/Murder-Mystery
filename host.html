@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Blood & Shadow | Host Control</title>
+<style>
+  body {
+    background: linear-gradient(to bottom, #1a0000, #000);
+    color: #f8f8f8;
+    font-family: 'Courier New', monospace;
+    padding: 20px;
+  }
+  h1 {
+    color: crimson;
+    text-shadow: 0 0 10px black;
+  }
+  .section {
+    margin: 20px 0;
+    padding: 15px;
+    border: 1px solid #444;
+    background: rgba(20, 20, 20, 0.8);
+  }
+  button {
+    background: crimson;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    margin: 5px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  button:hover { background: darkred; }
+  textarea {
+    width: 100%;
+    height: 70px;
+    background: #111;
+    color: #f8f8f8;
+    border: 1px solid #333;
+    padding: 5px;
+  }
+</style>
+</head>
+<body>
+<h1>Blood & Shadow | Host Control Room</h1>
+
+<!-- Guilty Character -->
+<div class="section">
+  <h2>Guilty Character</h2>
+  <p id="guiltyReveal">Hidden until reveal</p>
+  <button onclick="randomizeGuilty()">🎲 Randomize Guilty</button>
+</div>
+
+<!-- Broadcast -->
+<div class="section">
+  <h2>Live Broadcast</h2>
+  <textarea id="broadcastMsg" placeholder="Type your creepy message..."></textarea>
+  <button onclick="sendBroadcast()">Send Broadcast</button>
+</div>
+
+<!-- Drop a Clue -->
+<div class="section">
+  <h2>Clue Drop</h2>
+  <textarea id="clueMsg" placeholder="Type a clue to appear..."></textarea>
+  <button onclick="sendClue()">Drop Clue</button>
+</div>
+
+<!-- Firebase Integration -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+  import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-database.js";
+
+  // Firebase Config
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "blood-and-shadow.firebaseapp.com",
+    projectId: "blood-and-shadow",
+    storageBucket: "blood-and-shadow.firebasestorage.app",
+    messagingSenderId: "130359157525",
+    appId: "1:130359157525:web:b8252b62cb197b2d9fff1c",
+    measurementId: "G-DB7Y9D5NRE"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // --- Host Functions ---
+  window.sendBroadcast = function() {
+    const msg = document.getElementById('broadcastMsg').value;
+    if (!msg) return alert("Type a message first!");
+    set(ref(db, 'broadcast'), { message: msg, time: Date.now() });
+    document.getElementById('broadcastMsg').value = "";
+    alert("Broadcast sent!");
+  }
+
+  window.sendClue = function() {
+    const clue = document.getElementById('clueMsg').value;
+    if (!clue) return alert("Type a clue first!");
+    // Store clues as an array
+    const cluesRef = ref(db, 'clues');
+    set(cluesRef, [{ message: clue, time: Date.now() }]); // replace with push logic if multiple clues
+    document.getElementById('clueMsg').value = "";
+    alert("Clue dropped!");
+  }
+
+  window.randomizeGuilty = function() {
+    const suspects = [
+      "Rowan Vale","Samir Quinn","Jules Mercer","Taylor Cho","Nico Park",
+      "Casey Bright","Remy Lake","Alex Finch","River Sage","Morgan Hale",
+      "Sky Rowan","Dev Ortega","Kai Monroe","Emery Vale","Quinn Delaire",
+      "Harper Wynn","Eden Larke","Silas Dray","Liora Vance","Sasha Mirelle"
+    ];
+    const guilty = suspects[Math.floor(Math.random() * suspects.length)];
+    set(ref(db, 'guilty'), { name: guilty, time: Date.now() });
+    document.getElementById('guiltyReveal').innerText = "Guilty character has been chosen!";
+    alert("🎭 Guilty has been chosen: " + guilty);
+  }
+</script>
+</body>
+</html>

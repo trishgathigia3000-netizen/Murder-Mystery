@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Silas Dray — Security</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css"></head>
+<body>
+  <div class="character-page">
+    <div class="char-header"><div>
+      <div class="char-title">Silas Dray</div>
+      <div class="char-role">Security</div>
+      <div class="cryptic">“I watch everything. The question is—who’s paying me to keep quiet?”</div>
+    </div></div>
+
+    <div class="two-col">
+      <div class="col">
+        <div class="section"><h3>Backstory</h3>
+          <p>Hired to keep order, Silas also sees secrets: late-night visitors, whispered deals, and payments. Sometimes protection is a commodity — and Silas knows how to make it cost.</p>
+        </div>
+    <div class="section" id="guilt-slip" style="margin-top:20px;">
+        <button onclick="drawSlip()" style="padding:10px 20px;background:#900;color:#fff;border:none;font-family:'Creepster';">
+          Draw Your Slip
+        </button>
+        <p id="slip-result" style="margin-top:10px;font-size:18px;color:#eee;"></p>
+      </div>
+</script>
+        <div class="section connections"><h3>Connections</h3>
+          <ul>
+            <li><strong>Casey Bright</strong> — overheard desperation and pleas for cash.</li>
+            <li><strong>Sky Rowan</strong> — saw them slip in late.</li>
+            <li><strong>Quinn Delaire</strong> — suspected payments to look the other way.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="section"><h3>Outfit Vibe</h3>
+          <p class="outfit">Dark uniform, heavy boots, quiet and watchful. Functional and slightly menacing.</p>
+        </div>
+
+        <div class="section chart-links">
+          <h3>Explore Relations</h3>
+          <a href="chart.html?char=Silas%20Dray&type=professional">Professional</a>
+          <a href="chart.html?char=Silas%20Dray&type=financial">Financial</a>
+          <a href="chart.html?type=all">Full Web</a>
+        </div>
+      </div>
+    </div>
+  <div class="footer"><a class="back" href="index.html">← Back to Lobby</a></div>
+  </div>
+<script type="module">
+  import { db } from './js/firebase.js';
+  import { ref, onValue } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-database.js";
+
+  const playerName = "Silas Dray"; //
+
+  // Draw Your Slip
+  function drawSlip() {
+    const slipResult = document.getElementById("slip-result");
+    if (!slipResult) return;
+
+    const guiltyRef = ref(db, 'guilty');
+    onValue(guiltyRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) {
+        slipResult.innerText = "Waiting for the host to choose the guilty...";
+      } else if (data.name === playerName) {
+        slipResult.innerText = "You are GUILTY. Follow the guilty script.";
+      } else {
+        slipResult.innerText = "You are INNOCENT. Protect your secrets.";
+      }
+    }, { onlyOnce: true });
+  }
+
+  // Listen for Broadcasts
+  const broadcastRef = ref(db, 'broadcast');
+  onValue(broadcastRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data && data.message) {
+      alert("📢 Broadcast: " + data.message);
+    }
+  });
+
+  // Listen for Clues (array)
+  const cluesRef = ref(db, 'clues');
+  onValue(cluesRef, (snapshot) => {
+    const data = snapshot.val() || [];
+    const latest = data[data.length - 1];
+    if (latest && latest.message) {
+      alert("🔎 Clue: " + latest.message);
+    }
+  });
+
+  // Optional: log guilty for dev/debug
+  const guiltyRef = ref(db, 'guilty');
+  onValue(guiltyRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) console.log("🤫 Guilty is " + data.name);
+  });
+</script>
+</body></html>

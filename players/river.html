@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>River Sage — Influencer</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css"></head>
+<body>
+  <div class="character-page">
+    <div class="char-header"><div>
+      <div class="char-title">River Sage</div>
+      <div class="char-role">Influencer</div>
+      <div class="cryptic">“Every story needs an audience. How far will you go to keep yours watching?”</div>
+    </div></div>
+
+    <div class="two-col">
+      <div class="col">
+        <div class="section"><h3>Backstory</h3>
+          <p>River depends on visibility. Avery’s endorsement was supposed to be the big break. Losing it pushed River to be performative, theatrical, and sometimes manipulative about attention.</p>
+        </div>
+      <div class="section" id="guilt-slip" style="margin-top:20px;">
+        <button onclick="drawSlip()" style="padding:10px 20px;background:#900;color:#fff;border:none;font-family:'Creepster';">
+          Draw Your Slip
+        </button>
+        <p id="slip-result" style="margin-top:10px;font-size:18px;color:#eee;"></p>
+      </div>
+</script>
+        <div class="section connections"><h3>Connections</h3>
+          <ul>
+            <li><strong>Avery Lux</strong> — potential endorsement that would change everything.</li>
+            <li><strong>Eden Larke</strong> — flirt/ally for social leverage.</li>
+            <li><strong>Jules Mercer</strong> — rivalry for attention and influence.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="section"><h3>Outfit Vibe</h3>
+          <p class="outfit">Brash, colorful, and camera ready — curated pieces that read great on a feed and louder in a crowded room.</p>
+        </div>
+
+        <div class="section chart-links">
+          <h3>Explore Relations</h3>
+          <a href="chart.html?char=River%20Sage&type=professional">Professional</a>
+          <a href="chart.html?char=River%20Sage&type=rivalry">Rivalry</a>
+          <a href="chart.html?type=all">Full Web</a>
+        </div>
+      </div>
+    </div>
+  <div class="footer"><a class="back" href="index.html">← Back to Lobby</a></div>
+  </div>
+<script type="module">
+  import { db } from './js/firebase.js';
+  import { ref, onValue } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-database.js";
+
+  const playerName = "River Sage"; //
+
+  // Draw Your Slip
+  function drawSlip() {
+    const slipResult = document.getElementById("slip-result");
+    if (!slipResult) return;
+
+    const guiltyRef = ref(db, 'guilty');
+    onValue(guiltyRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) {
+        slipResult.innerText = "Waiting for the host to choose the guilty...";
+      } else if (data.name === playerName) {
+        slipResult.innerText = "You are GUILTY. Follow the guilty script.";
+      } else {
+        slipResult.innerText = "You are INNOCENT. Protect your secrets.";
+      }
+    }, { onlyOnce: true });
+  }
+
+  // Listen for Broadcasts
+  const broadcastRef = ref(db, 'broadcast');
+  onValue(broadcastRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data && data.message) {
+      alert("📢 Broadcast: " + data.message);
+    }
+  });
+
+  // Listen for Clues (array)
+  const cluesRef = ref(db, 'clues');
+  onValue(cluesRef, (snapshot) => {
+    const data = snapshot.val() || [];
+    const latest = data[data.length - 1];
+    if (latest && latest.message) {
+      alert("🔎 Clue: " + latest.message);
+    }
+  });
+
+  // Optional: log guilty for dev/debug
+  const guiltyRef = ref(db, 'guilty');
+  onValue(guiltyRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) console.log("🤫 Guilty is " + data.name);
+  });
+</script>
+</body></html>

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Sasha Mirelle — Assistant Curator</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css"></head>
+<body>
+  <div class="character-page">
+    <div class="char-header"><div>
+      <div class="char-title">Sasha Mirelle</div>
+      <div class="char-role">Assistant Curator</div>
+      <div class="cryptic">“I know every name on the guest list. But who wrote mine in blood?”</div>
+    </div></div>
+
+    <div class="two-col">
+      <div class="col">
+        <div class="section"><h3>Backstory</h3>
+          <p>Sasha handled the invitations, knows who was meant to be there, and noticed when someone slipped in who shouldn’t have. Quiet, capable, and dangerous when pushed.</p>
+        </div>
+    <div class="section" id="guilt-slip" style="margin-top:20px;">
+        <button onclick="drawSlip()" style="padding:10px 20px;background:#900;color:#fff;border:none;font-family:'Creepster';">
+          Draw Your Slip
+        </button>
+        <p id="slip-result" style="margin-top:10px;font-size:18px;color:#eee;"></p>
+      </div>
+</script>
+        <div class="section connections"><h3>Connections</h3>
+          <ul>
+            <li><strong>Rowan Vale</strong> — sympathetic ally; both felt sidelined.</li>
+            <li><strong>Sky Rowan</strong> — noticed the RSVP discrepancy.</li>
+            <li><strong>Morgan Hale</strong> — works closely on logistics and noticed odd entries.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="section"><h3>Outfit Vibe</h3>
+          <p class="outfit">Neutral and sharp. Practical, unflashy, the kind of presence that blends until you study them and realize how much they know.</p>
+        </div>
+
+        <div class="section chart-links">
+          <h3>Explore Relations</h3>
+          <a href="chart.html?char=Sasha%20Mirelle&type=professional">Professional</a>
+          <a href="chart.html?char=Sasha%20Mirelle&type=rivalry">Rivalry</a>
+          <a href="chart.html?type=all">Full Web</a>
+        </div>
+      </div>
+    </div>
+  <div class="footer"><a class="back" href="index.html">← Back to Lobby</a></div>
+  </div>
+<script type="module">
+  import { db } from './js/firebase.js';
+  import { ref, onValue } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-database.js";
+
+  const playerName = "Sasha Mirelle"; //
+
+  // Draw Your Slip
+  function drawSlip() {
+    const slipResult = document.getElementById("slip-result");
+    if (!slipResult) return;
+
+    const guiltyRef = ref(db, 'guilty');
+    onValue(guiltyRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) {
+        slipResult.innerText = "Waiting for the host to choose the guilty...";
+      } else if (data.name === playerName) {
+        slipResult.innerText = "You are GUILTY. Follow the guilty script.";
+      } else {
+        slipResult.innerText = "You are INNOCENT. Protect your secrets.";
+      }
+    }, { onlyOnce: true });
+  }
+
+  // Listen for Broadcasts
+  const broadcastRef = ref(db, 'broadcast');
+  onValue(broadcastRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data && data.message) {
+      alert("📢 Broadcast: " + data.message);
+    }
+  });
+
+  // Listen for Clues (array)
+  const cluesRef = ref(db, 'clues');
+  onValue(cluesRef, (snapshot) => {
+    const data = snapshot.val() || [];
+    const latest = data[data.length - 1];
+    if (latest && latest.message) {
+      alert("🔎 Clue: " + latest.message);
+    }
+  });
+
+  // Optional: log guilty for dev/debug
+  const guiltyRef = ref(db, 'guilty');
+  onValue(guiltyRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) console.log("🤫 Guilty is " + data.name);
+  });
+</script>
+</body></html>

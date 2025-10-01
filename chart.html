@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Relationship Web — Blood & Shadow</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  /* override for full-screen chart */
+  body{margin:0;height:100vh; display:flex; flex-direction:column;}
+  #chartHeader{padding:12px;background:linear-gradient(180deg,#050202,#0b0505);display:flex;align-items:center;justify-content:space-between}
+  #chartArea{flex:1;position:relative}
+  svg{width:100%;height:100%}
+  .legend{color:#ddd;font-size:13px}
+  .note{color:#aaa;font-size:13px}
+  .backlink{color:#f0b;text-decoration:none}
+</style>
+</head>
+<body>
+  <div id="chartHeader">
+    <div>
+      <strong style="font-family:'Cinzel',serif;color:var(--blood)">Lumen House — Relationship Web</strong>
+      <div class="note" id="subtitle"> </div>
+    </div>
+    <div>
+      <a class="backlink" href="index.html">← Back</a>
+    </div>
+  </div>
+  <div id="chartArea"><svg id="svg"></svg></div>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+/* Graph data - matches the web you've approved */
+const NODES = [
+  {id:"Avery Lux"},{id:"Rowan Vale"},{id:"Emery Vale"},{id:"Samir Quinn"},
+  {id:"Jules Mercer"},{id:"Taylor Cho"},{id:"Nico Park"},{id:"Casey Bright"},
+  {id:"Remy Lake"},{id:"Alex Finch"},{id:"River Sage"},{id:"Morgan Hale"},
+  {id:"Sky Rowan"},{id:"Dev Ortega"},{id:"Kai Monroe"},{id:"Quinn Delaire"},
+  {id:"Harper Wynn"},{id:"Eden Larke"},{id:"Silas Dray"},{id:"Liora Vance"},
+  {id:"Sasha Mirelle"}
+];
+
+const LINKS = [
+  // family
+  {source:"Rowan Vale",target:"Emery Vale",type:"family"},
+  {source:"Rowan Vale",target:"Avery Lux",type:"family"},
+  {source:"Emery Vale",target:"Avery Lux",type:"family"},
+  // financial
+  {source:"Samir Quinn",target:"Avery Lux",type:"financial"},
+  {source:"Samir Quinn",target:"Alex Finch",type:"financial"},
+  {source:"Quinn Delaire",target:"Avery Lux",type:"financial"},
+  {source:"Dev Ortega",target:"Avery Lux",type:"financial"},
+  {source:"Casey Bright",target:"Avery Lux",type:"financial"},
+  {source:"Liora Vance",target:"Avery Lux",type:"financial"},
+  {source:"Liora Vance",target:"Samir Quinn",type:"financial"},
+  {source:"Eden Larke",target:"Samir Quinn",type:"financial"},
+  {source:"Silas Dray",target:"Quinn Delaire",type:"financial"},
+  {source:"Silas Dray",target:"Casey Bright",type:"financial"},
+  // professional
+  {source:"Rowan Vale",target:"Avery Lux",type:"professional"},
+  {source:"Taylor Cho",target:"Avery Lux",type:"professional"},
+  {source:"Kai Monroe",target:"Avery Lux",type:"professional"},
+  {source:"Nico Park",target:"Avery Lux",type:"professional"},
+  {source:"River Sage",target:"Avery Lux",type:"professional"},
+  {source:"Morgan Hale",target:"Avery Lux",type:"professional"},
+  {source:"Sky Rowan",target:"Avery Lux",type:"professional"},
+  {source:"Sasha Mirelle",target:"Avery Lux",type:"professional"},
+  {source:"Eden Larke",target:"Avery Lux",type:"professional"},
+  {source:"Silas Dray",target:"Avery Lux",type:"professional"},
+  // romantic
+  {source:"Jules Mercer",target:"Avery Lux",type:"romantic"},
+  {source:"Remy Lake",target:"Avery Lux",type:"romantic"},
+  {source:"Jules Mercer",target:"Remy Lake",type:"romantic"},
+  // rivalry / secrets
+  {source:"Rowan Vale",target:"Samir Quinn",type:"rivalry"},
+  {source:"Rowan Vale",target:"River Sage",type:"rivalry"},
+  {source:"Taylor Cho",target:"Kai Monroe",type:"rivalry"},
+  {source:"Nico Park",target:"Samir Quinn",type:"rivalry"},
+  {source:"Casey Bright",target:"Dev Ortega",type:"rivalry"},
+  {source:"Alex Finch",target:"Avery Lux",type:"rivalry"},
+  {source:"Harper Wynn",target:"Taylor Cho",type:"rivalry"},
+  {source:"Harper Wynn",target:"Kai Monroe",type:"rivalry"},
+  {source:"Harper Wynn",target:"Avery Lux",type:"rivalry"},
+  {source:"Eden Larke",target:"Rowan Vale",type:"rivalry"},
+  {source:"Eden Larke",target:"River Sage",type:"professional"},
+  {source:"Silas Dray",target:"Sky Rowan",type:"professional"},
+  {source:"Liora Vance",target:"Kai Monroe",type:"rivalry"},
+  {source:"Liora Vance",target:"Nico Park",type:"rivalry"},
+  {source:"Sasha Mirelle",target:"Rowan Vale",type:"professional"},
+  {source:"Sasha Mirelle",target:"Sky Rowan",type:"rivalry"}
+];
+
+const color = {
+  family:'#b71c1c',      // blood
+  financial:'#27ae60',   // deep green
+  professional:'#4ea3ff',// cold blue
+  romantic:'#ff4da6',    // hot rose
+  rivalry:'#f1c40f'      // tarnished gold
+};
+
+function qs(key){
+  const params = new URLSearchParams(location.search);
+  return params.get(key);
+}
+
+const focusChar = qs('char') || null;
+const filterType = (qs('type') || 'all').toLowerCase();
+
+document.getElementById('subtitle').textContent = focusChar ? `Focused: ${focusChar} — ${filterType}` : `Full web — filter: ${filterType}`;
+
+const svg = d3.select('#svg');
+const width = window.innerWidth;
+const height = window.innerHeight - 80;
+
+svg.attr('viewBox', `0 0 ${width} ${height}`);
+
+const simulation = d3.forceSimulation(NODES)
+  .force('link', d3.forceLink(LINKS).id(d=>d.id).distance(120).strength(0.9))
+  .force('charge', d3.forceManyBody().strength(-700))
+  .force('center', d3.forceCenter(width/2, height/2))
+  .force('collide', d3.forceCollide(32));
+
+const link = svg.append('g').selectAll('line')
+  .data(LINKS)
+  .enter().append('line')
+  .attr('stroke', d => color[d.type] || '#888')
+  .attr('stroke-width', 2)
+  .attr('opacity', d => (filterType === 'all' || d.type === filterType) ? 0.95 : 0.06)
+  .style('mix-blend-mode','screen');
+
+const node = svg.append('g').selectAll('g')
+  .data(NODES)
+  .enter().append('g')
+  .call(d3.drag().on('start', dragstarted).on('drag', dragged).on('end', dragended));
+
+node.append('circle')
+  .attr('r', d => d.id==='Avery Lux' ? 16 : 10)
+  .attr('fill', d => d.id==='Avery Lux' ? color.family : '#333')
+  .attr('stroke', '#fff')
+  .attr('stroke-width', 1.2)
+  .on('mouseover', (ev,d)=> showTooltip(ev,d))
+  .on('mouseout', hideTooltip)
+  .on('click', (ev,d)=> focusNode(d));
+
+node.append('text')
+  .attr('x', 14).attr('y',4)
+  .text(d=>d.id)
+  .style('fill','#ddd').style('font-size','11px');
+
+simulation.on('tick', ()=>{
+  link.attr('x1', d=>d.source.x).attr('y1', d=>d.source.y).attr('x2', d=>d.target.x).attr('y2', d=>d.target.y);
+  node.attr('transform', d=> `translate(${d.x},${d.y})`);
+});
+
+/* tooltip */
+const tip = d3.select('body').append('div').attr('id','tip').style('position','absolute').style('display','none').style('background','#0b0b0b').style('padding','8px 10px').style('border-radius','6px').style('border','1px solid rgba(255,0,0,0.06)').style('color','#fff').style('font-family','Inter').style('font-size','13px');
+
+function showTooltip(ev,d){
+  tip.style('left', ev.pageX+12+'px').style('top', ev.pageY+10+'px').style('display','block').html(`<strong>${d.id}</strong>`);
+}
+function hideTooltip(){ tip.style('display','none'); }
+
+function dragstarted(event) {
+  if(!event.active) simulation.alphaTarget(0.3).restart();
+  event.subject.fx = event.subject.x;
+  event.subject.fy = event.subject.y;
+}
+function dragged(event) {
+  event.subject.fx = event.x;
+  event.subject.fy = event.y;
+}
+function dragended(event) {
+  if(!event.active) simulation.alphaTarget(0);
+  event.subject.fx = null;
+  event.subject.fy = null;
+}
+
+/* focus on a node, dim others; clicking center resets */
+function focusNode(d){
+  const focused = d.id;
+  node.selectAll('circle').style('opacity', n => (n.id===focused || connected(n.id,focused)) ? 1 : 0.1);
+  node.selectAll('text').style('opacity', n => (n.id===focused || connected(n.id,focused)) ? 1 : 0.12);
+  link.style('opacity', l => (l.source.id===focused || l.target.id===focused) ? 1 : 0.03);
+  // center briefly
+  d.fx = width/2; d.fy = height/2;
+  simulation.alphaTarget(0.3).restart();
+  setTimeout(()=>{ d.fx = null; d.fy = null; simulation.alphaTarget(0); }, 1000);
+}
+
+function connected(a,b){
+  if(a===b) return true;
+  return LINKS.some(l => (l.source.id===a && l.target.id===b) || (l.source.id===b && l.target.id===a));
+}
+
+/* filter by query param: show only links of that type (already partially applied in opacity) */
+if(filterType !== 'all'){
+  link.style('display', d => d.type === filterType ? 'block' : 'none');
+}
+
+/* if query asks to focus on char at load */
+if(focusChar){
+  // wait a beat until simulation settles
+  setTimeout(()=> {
+    const datum = NODES.find(n=>n.id.toLowerCase()===focusChar.toLowerCase());
+    if(datum) focusNode(datum);
+  }, 600);
+}
+
+/* reset on double-click background */
+svg.on('dblclick', ()=> {
+  node.selectAll('circle').style('opacity',1);
+  node.selectAll('text').style('opacity',1);
+  link.style('opacity',0.95).style('display','block');
+});
+</script>
+</body>
+</html>
